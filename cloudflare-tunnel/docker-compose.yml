@@ -1,0 +1,16 @@
+version: '3.9'
+
+networks:
+  <name_of_docker_network>:
+    external: true
+
+services:
+  cloudflaretunnel:
+    container_name: cloudflare-tunnel
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    environment:
+      - TUNNEL_TOKEN=<api-key>
+    command: tunnel --no-autoupdate run
+    networks:
+      - <name_of_docker_network>

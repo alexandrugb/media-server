@@ -1,0 +1,24 @@
+version: '3.9'
+
+networks:
+  <name_of_docker_network>:
+    external: true
+
+services:
+  radarr:
+    container_name: radarr
+    image: lscr.io/linuxserver/radarr:latest
+    ports:
+      - 7878:7878
+    volumes:
+      - <path_to_config_file>:/config
+      - <path_to_files>:/movies
+      - <path_to_files>:/downloads
+      - <path_to_files>:/transcode
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+    networks:
+      - <name_of_docker_network>
+    restart: unless-stopped

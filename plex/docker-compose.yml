@@ -1,0 +1,29 @@
+version: '3.9'
+
+networks:
+  <name_of_docker_network>:
+    external: true
+
+services:
+  plex:
+    image: lscr.io/linuxserver/plex:latest
+    container_name: plex
+    ports:
+      - 32400:32400/tcp
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+      - PLEX_CLAIM=claim-NmoFA_CyXXZzNu8GPyaz
+      - ADVERTISE_IP=http://<hostname>:32400/
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+    hostname: <hostname>
+    volumes:
+      - <path_to_config_file>:/config
+      - <path_to_files>:/tv
+      - <path_to_files>:/movies
+    runtime: nvidia
+    restart: unless-stopped
+    networks:
+      - <name_of_docker_network>
