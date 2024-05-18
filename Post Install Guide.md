@@ -31,7 +31,7 @@
 * `sudo dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo`
 * install the latest version : `sudo dnf install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin`
 * start docker `sudo systemctl start docker`
-* enable docker `sudo systemctl start docker`
+* enable docker `sudo systemctl enable docker`
 * verify that docker works `sudo docker run hello-world`
 * add your user to the `docker` group `sudo usermod -aG docker $USER`
 * reboot
