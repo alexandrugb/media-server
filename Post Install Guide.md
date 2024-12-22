@@ -1,11 +1,4 @@
 
-### Faster Updates
-
-- `sudo vim /etc/dnf/dnf.conf`
--  add the following lines:
-- `max_parallel_downloads=10`
-- `fastestmirror=true`
-
 #### Install RPM Fusion Repo
 
 - `sudo dnf install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm`
