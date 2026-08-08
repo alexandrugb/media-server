@@ -1,24 +1,31 @@
 networks:
-  <name_of_docker_network>:
+  media:
     external: true
+    name: ${DOCKER_NETWORK:-media}
 
 services:
   qbittorrent:
     image: lscr.io/linuxserver/qbittorrent:latest
     container_name: qbittorrent
     environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Etc/UTC
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Etc/UTC}
       - WEBUI_PORT=8080
       - TORRENTING_PORT=5881
     volumes:
-      - <path_to_config_file>:/config
-      - <path_to_files>:/tvseries
+      - ${CONFIG_ROOT}/qbittorrent:/config
+      - ${DATA_ROOT}/tvseries:/data/tvseries
     ports:
-      - 8080:8080
+      - ${BIND_ADDR:-0.0.0.0}:8080:8080
       - 5881:5881
       - 5881:5881/udp
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:8080 || exit 1']
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
     restart: unless-stopped
     networks:
-      - <name_of_docker_network>
+      - media

@@ -4,20 +4,19 @@ networks:
     name: ${DOCKER_NETWORK:-media}
 
 services:
-  sonarr:
-    image: lscr.io/linuxserver/sonarr:latest
-    container_name: sonarr
+  seerr:
+    image: lscr.io/linuxserver/overseerr:latest
+    container_name: seerr
     environment:
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
       - TZ=${TZ:-Etc/UTC}
     volumes:
-      - ${CONFIG_ROOT}/sonarr:/config
-      - ${DATA_ROOT}:/data
+      - ${CONFIG_ROOT}/seerr:/config
     ports:
-      - ${BIND_ADDR:-0.0.0.0}:8989:8989
+      - ${BIND_ADDR:-0.0.0.0}:5055:5055
     healthcheck:
-      test: ['CMD-SHELL', 'curl -f http://localhost:8989/ping || exit 1']
+      test: ['CMD-SHELL', 'curl -f http://localhost:5055/api/v1/status || exit 1']
       interval: 30s
       timeout: 10s
       start_period: 60s

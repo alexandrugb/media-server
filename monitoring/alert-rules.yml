@@ -1,0 +1,60 @@
+groups:
+  - name: availability
+    rules:
+      - alert: TargetDown
+        expr: up == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: '{{ $labels.job }} target is down'
+          description: '{{ $labels.instance }} has been unreachable for 5 minutes.'
+
+  - name: host
+    rules:
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"}) * 100 < 10
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Less than 10% disk space left on {{ $labels.mountpoint }}'
+          description: '{{ $labels.mountpoint }} is at {{ printf "%.1f" $value }}% free.'
+
+      - alert: DiskSpaceCritical
+        expr: (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"}) * 100 < 3
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Less than 3% disk space left on {{ $labels.mountpoint }}'
+          description: '{{ $labels.mountpoint }} is at {{ printf "%.1f" $value }}% free.'
+
+      - alert: HighMemoryUsage
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 > 90
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Memory usage above 90%'
+          description: 'Host memory has been above 90% for 15 minutes.'
+
+      - alert: HighCpuLoad
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+        for: 20m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'CPU usage above 90%'
+          description: 'Sustained CPU load above 90% for 20 minutes.'
+
+  - name: arr
+    rules:
+      - alert: ArrHealthIssue
+        expr: sonarr_system_health_issues > 0 or radarr_system_health_issues > 0 or prowlarr_system_health_issues > 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: '{{ $labels.job }} reports health issues'
+          description: '{{ $labels.job }} has {{ $value }} open health issue(s).'

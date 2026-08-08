@@ -1,0 +1,191 @@
+networks:
+  media:
+    external: true
+    name: ${DOCKER_NETWORK:-media}
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - ${BIND_ADDR:-0.0.0.0}:9090:9090
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:9090/-/healthy']
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - media
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - ${BIND_ADDR:-0.0.0.0}:3000:3000
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:?set GRAFANA_ADMIN_USER in .env}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD in .env}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:3000/api/health']
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - media
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:9100']
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - media
+
+  loki:
+    image: grafana/loki:2.9.2
+    container_name: loki
+    volumes:
+      - ./loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki-data:/loki
+    command: ['-config.file=/etc/loki/local-config.yaml']
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:3100/ready']
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - media
+
+  promtail:
+    image: grafana/promtail:2.9.2
+    container_name: promtail
+    volumes:
+      - ./promtail-config.yml:/etc/promtail/config.yml:ro
+      - promtail-data:/var/lib/promtail
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: ['-config.file=/etc/promtail/config.yml']
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:9080/metrics']
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - media
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: alertmanager
+    ports:
+      - ${BIND_ADDR:-0.0.0.0}:9093:9093
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./secrets:/etc/alertmanager/secrets:ro
+      - alertmanager-data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:9093/-/healthy']
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - media
+
+  exportarr-radarr:
+    image: ghcr.io/onedr0p/exportarr:latest
+    container_name: exportarr-radarr
+    command: ['radarr']
+    environment:
+      - PORT=9707
+      - URL=http://radarr:7878
+      - APIKEY=${RADARR_API_KEY:?set RADARR_API_KEY in .env}
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:9707/healthz']
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - media
+
+  exportarr-sonarr:
+    image: ghcr.io/onedr0p/exportarr:latest
+    container_name: exportarr-sonarr
+    command: ['sonarr']
+    environment:
+      - PORT=9708
+      - URL=http://sonarr:8989
+      - APIKEY=${SONARR_API_KEY:?set SONARR_API_KEY in .env}
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:9708/healthz']
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - media
+
+  exportarr-prowlarr:
+    image: ghcr.io/onedr0p/exportarr:latest
+    container_name: exportarr-prowlarr
+    command: ['prowlarr']
+    environment:
+      - PORT=9709
+      - URL=http://prowlarr:9696
+      - APIKEY=${PROWLARR_API_KEY:?set PROWLARR_API_KEY in .env}
+      - PROWLARR__BACKFILL=true
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:9709/healthz']
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - media
+
+volumes:
+  prometheus-data:
+  grafana-data:
+  loki-data:
+  promtail-data:
+  alertmanager-data:

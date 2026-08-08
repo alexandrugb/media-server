@@ -4,20 +4,20 @@ networks:
     name: ${DOCKER_NETWORK:-media}
 
 services:
-  sonarr:
-    image: lscr.io/linuxserver/sonarr:latest
-    container_name: sonarr
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr
     environment:
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
       - TZ=${TZ:-Etc/UTC}
     volumes:
-      - ${CONFIG_ROOT}/sonarr:/config
+      - ${CONFIG_ROOT}/bazarr:/config
       - ${DATA_ROOT}:/data
     ports:
-      - ${BIND_ADDR:-0.0.0.0}:8989:8989
+      - ${BIND_ADDR:-0.0.0.0}:6767:6767
     healthcheck:
-      test: ['CMD-SHELL', 'curl -f http://localhost:8989/ping || exit 1']
+      test: ['CMD-SHELL', 'curl -f http://localhost:6767 || exit 1']
       interval: 30s
       timeout: 10s
       start_period: 60s

@@ -1,22 +1,27 @@
 networks:
-  <name_of_docker_network>:
+  media:
     external: true
+    name: ${DOCKER_NETWORK:-media}
 
 services:
   radarr:
     container_name: radarr
     image: lscr.io/linuxserver/radarr:latest
     ports:
-      - 7878:7878
+      - ${BIND_ADDR:-0.0.0.0}:7878:7878
     volumes:
-      - <path_to_config_file>:/config
-      - <path_to_files>:/movies
-      - <path_to_files>:/downloads
-      - <path_to_files>:/transcode
+      - ${CONFIG_ROOT}/radarr:/config
+      - ${DATA_ROOT}:/data
     environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Etc/UTC
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Etc/UTC}
     networks:
-      - <name_of_docker_network>
+      - media
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:7878/ping || exit 1']
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
     restart: unless-stopped

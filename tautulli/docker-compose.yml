@@ -4,20 +4,20 @@ networks:
     name: ${DOCKER_NETWORK:-media}
 
 services:
-  sonarr:
-    image: lscr.io/linuxserver/sonarr:latest
-    container_name: sonarr
+  tautulli:
+    image: lscr.io/linuxserver/tautulli:latest
+    container_name: tautulli
     environment:
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
       - TZ=${TZ:-Etc/UTC}
     volumes:
-      - ${CONFIG_ROOT}/sonarr:/config
-      - ${DATA_ROOT}:/data
+      - ${CONFIG_ROOT}/tautulli:/config
+      - ${CONFIG_ROOT}/plex/Library/Application Support/Plex Media Server/Logs:/logs:ro
     ports:
-      - ${BIND_ADDR:-0.0.0.0}:8989:8989
+      - ${BIND_ADDR:-0.0.0.0}:8181:8181
     healthcheck:
-      test: ['CMD-SHELL', 'curl -f http://localhost:8989/ping || exit 1']
+      test: ['CMD-SHELL', 'curl -f http://localhost:8181 || exit 1']
       interval: 30s
       timeout: 10s
       start_period: 60s

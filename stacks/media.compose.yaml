@@ -1,0 +1,239 @@
+## Single-file media stack for Komodo.
+## Paste this into a Komodo Stack (UI Defined) and put the variables from
+## media.env.example into the Stack's Environment box.
+##
+## The per-directory compose files in this repo remain the source of truth for
+## running stacks individually; this file is the combined equivalent.
+
+networks:
+  media:
+    external: true
+    name: ${DOCKER_NETWORK:-media}
+
+services:
+  plex:
+    image: lscr.io/linuxserver/plex:latest
+    container_name: plex
+    ports:
+      - 32400:32400/tcp
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Etc/UTC}
+      - PLEX_CLAIM=${PLEX_CLAIM}
+      - ADVERTISE_IP=http://${PLEX_HOSTNAME}:32400/
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+    hostname: ${PLEX_HOSTNAME}
+    volumes:
+      - ${CONFIG_ROOT}/plex:/config
+      - ${DATA_ROOT}:/data:ro
+    runtime: nvidia
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:32400/identity || exit 1']
+      interval: 30s
+      timeout: 10s
+      start_period: 120s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - media
+
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    ports:
+      - ${BIND_ADDR:-0.0.0.0}:7878:7878
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Etc/UTC}
+    volumes:
+      - ${CONFIG_ROOT}/radarr:/config
+      - ${DATA_ROOT}:/data
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:7878/ping || exit 1']
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - media
+
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    ports:
+      - ${BIND_ADDR:-0.0.0.0}:8989:8989
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Etc/UTC}
+    volumes:
+      - ${CONFIG_ROOT}/sonarr:/config
+      - ${DATA_ROOT}:/data
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:8989/ping || exit 1']
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - media
+
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr
+    ports:
+      - ${BIND_ADDR:-0.0.0.0}:6767:6767
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Etc/UTC}
+    volumes:
+      - ${CONFIG_ROOT}/bazarr:/config
+      - ${DATA_ROOT}:/data
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:6767 || exit 1']
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - media
+
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    ports:
+      - ${BIND_ADDR:-0.0.0.0}:9696:9696
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Etc/UTC}
+    volumes:
+      - ${CONFIG_ROOT}/prowlarr:/config
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:9696/ping || exit 1']
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - media
+
+  seerr:
+    image: lscr.io/linuxserver/overseerr:latest
+    container_name: seerr
+    ports:
+      - ${BIND_ADDR:-0.0.0.0}:5055:5055
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Etc/UTC}
+    volumes:
+      - ${CONFIG_ROOT}/seerr:/config
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:5055/api/v1/status || exit 1']
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - media
+
+  tautulli:
+    image: lscr.io/linuxserver/tautulli:latest
+    container_name: tautulli
+    ports:
+      - ${BIND_ADDR:-0.0.0.0}:8181:8181
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Etc/UTC}
+    volumes:
+      - ${CONFIG_ROOT}/tautulli:/config
+      - ${CONFIG_ROOT}/plex/Library/Application Support/Plex Media Server/Logs:/logs:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:8181 || exit 1']
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - media
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    ports:
+      - ${BIND_ADDR:-0.0.0.0}:8080:8080
+      - 5881:5881
+      - 5881:5881/udp
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Etc/UTC}
+      - WEBUI_PORT=8080
+      - TORRENTING_PORT=5881
+    volumes:
+      - ${CONFIG_ROOT}/qbittorrent:/config
+      - ${DATA_ROOT}/tvseries:/data/tvseries
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:8080 || exit 1']
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - media
+
+  deluge:
+    image: lscr.io/linuxserver/deluge:latest
+    container_name: deluge
+    ports:
+      - ${BIND_ADDR:-0.0.0.0}:8112:8112
+      - 6881:6881
+      - 6881:6881/udp
+      - ${BIND_ADDR:-0.0.0.0}:58846:58846
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Etc/UTC}
+      - DELUGE_LOGLEVEL=error
+    volumes:
+      - ${CONFIG_ROOT}/deluge:/config
+      - ${DATA_ROOT}/movies:/data/movies
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:8112 || exit 1']
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - media
+
+  cloudflaretunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflare-tunnel
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+      - TUNNEL_METRICS=0.0.0.0:2000
+    command: tunnel --no-autoupdate run
+    healthcheck:
+      test: ['CMD', 'cloudflared', 'tunnel', '--metrics', '127.0.0.1:2000', 'ready']
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - media

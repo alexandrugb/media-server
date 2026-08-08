@@ -1,0 +1,6 @@
+.env
+*.env
+!*.env.example
+komodo/backups/
+monitoring/secrets/*
+!monitoring/secrets/.gitkeep
